@@ -1,77 +1,61 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.util.*, com.example.model.Post" %>
+<%@page contentType="text/html"%>
+<%@page pageEncoding="utf-8"%>
+<%@page import="java.sql.*"%>
+<%
+    String keyword = request.getParameter("keyword");
+    if(keyword == null) keyword = "";
 
-<!DOCTYPE html>
+    // ODBC 連線 Access
+    Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+    String url = "jdbc:ucanaccess://C:\\Users\\User\\Documents\\GitHub\\Yummy\\leelab\\src\\main\\webapp\\LeeLab.accdb";
+    Connection conn = DriverManager.getConnection(url);
+
+    String sql = "SELECT * FROM Posts WHERE title LIKE ? OR restaurant LIKE ? OR cuisine LIKE ? ORDER BY created_time DESC";
+    PreparedStatement ps = conn.prepareStatement(sql);
+    ps.setString(1, "%" + keyword + "%");
+    ps.setString(2, "%" + keyword + "%");
+    ps.setString(3, "%" + keyword + "%");
+
+    ResultSet rs = ps.executeQuery();
+%>
+
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>美食匿名留言板</title>
+    <title>匿名美食留言 – 首頁</title>
 </head>
 <body>
 
-<h1>美食匿名網站</h1>
+<h1>匿名美食留言網站</h1>
 
-<!-- 搜尋列 -->
-<form action="posts" method="get">
-    關鍵字：<input type="text" name="q" value="${param.q}">
-    類別：
-    <select name="category">
-        <option value="">全部</option>
-        <option value="小吃">小吃</option>
-        <option value="飲料">飲料</option>
-        <option value="甜點">甜點</option>
-    </select>
+<form method="get" action="index.jsp">
+    <input type="text" name="keyword" placeholder="搜尋店名 / 料理種類 / 標題" value="<%=keyword%>">
     <button type="submit">搜尋</button>
 </form>
 
 <hr>
 
-<h2>所有貼文（依時間排序）</h2>
+<h2>所有貼文</h2>
 
 <%
-    List<Post> posts = (List<Post>) request.getAttribute("posts");
-    if (posts == null || posts.isEmpty()) {
+while(rs.next()){
 %>
-        <p>目前沒有貼文。</p>
-<%
-    } else {
-        for (Post p : posts) {
-%>
-
-    <div style="border:1px solid #999; padding:10px; margin:10px 0;">
+    <div style="border:1px solid #ccc; padding:10px; margin:10px;">
         <h3>
-            <a href="post?id=<%= p.getId() %>">
-                <%= p.getTitle() %>
+            <a href="post.jsp?id=<%=rs.getInt("id")%>">
+                <%=rs.getString("title")%>
             </a>
         </h3>
-        <p>店名：<%= p.getShopName() %></p>
-        <p>類別：<%= p.getCategory() %></p>
-        <p>時間：<%= p.getCreatedAt() %></p>
 
-        <%
-            // 判斷是否登入（session 有 userId 就代表登入）
-            Object userId = session.getAttribute("userId");
-            if (userId != null) {
-        %>
-            <p>
-                <a href="like?postId=<%=p.getId()%>">👍 按讚</a> |
-                <a href="bookmark?postId=<%=p.getId()%>">★ 收藏</a> |
-                <a href="post?id=<%=p.getId()%>#comment">留言</a>
-            </p>
-        <%
-            } else {
-        %>
-            <p style="color:gray;">（登入後可按讚 / 收藏 / 留言）</p>
-        <%
-            }
-        %>
+        <p>餐廳： <%=rs.getString("restaurant")%></p>
+        <p>料理種類： <%=rs.getString("cuisine")%></p>
+        <p><small>時間： <%=rs.getString("created_time")%></small></p>
     </div>
-
 <%
-        }
-    }
+}
+conn.close();
 %>
 
 </body>
 </html>
+
 
